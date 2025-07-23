@@ -7,7 +7,7 @@ namespace UnitBrains.Player
     public class SecondUnitBrain : DefaultPlayerUnitBrain
     {
         public override string TargetUnitName => "Cobra Commando";
-        private const float OverheatTemperature = 3f;
+        private const float OverheatTemperature = 4f;
         private const float OverheatCooldown = 2f;
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
@@ -18,9 +18,26 @@ namespace UnitBrains.Player
             float overheatTemperature = OverheatTemperature;
             ///////////////////////////////////////
             // Homework 1.3 (1st block, 3rd module)
-            ///////////////////////////////////////           
-            var projectile = CreateProjectile(forTarget);
-            AddProjectileToList(projectile, intoList);
+            ///////////////////////////////////////  
+            ///
+
+            int currentTempreture = (int)GetTemperature(); 
+            if (currentTempreture>=overheatTemperature)
+            {
+                return;
+            }
+
+            int projectileINT = currentTempreture;
+
+            for (int i = 0; i < projectileINT; i++)
+            {
+                var projectile = CreateProjectile(forTarget);
+                AddProjectileToList(projectile, intoList);
+               
+            }
+            IncreaseTemperature();
+
+
             ///////////////////////////////////////
         }
 
