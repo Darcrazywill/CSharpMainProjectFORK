@@ -18,7 +18,16 @@ namespace UnitBrains.Player
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
         private bool _overheated;
+        private int _unitNumber;
+        private const int MaxOfTargets = 3;
+        private static int unitCounter = 0;
 
+        private List<Vector2Int> _unreachableTargets = new List<Vector2Int>();
+        public SecondUnitBrain()
+        {
+            _unitNumber = unitCounter++;
+           
+        }
 
         protected override void GenerateProjectiles(Vector2Int forTarget, List<BaseProjectile> intoList)
         {
@@ -47,91 +56,50 @@ namespace UnitBrains.Player
 
             ///////////////////////////////////////
         }
-
         public override Vector2Int GetNextStep()
         {
-            Vector2Int currentPosition = base.GetNextStep();
-            List<Vector2Int> selectedTargets = SelectTargets();
-
-            if (selectedTargets.Count == 0)
+            if (_unreachableTargets.Count>0)
             {
-                return currentPosition;
+                Vector2Int target = _unreachableTargets[0];
+                return unit.Pos.CalcNextStepTowards(target);
             }
-
-            Vector2Int target = selectedTargets[0];
-
-
-            if (Vector2Int.Distance(currentPosition, target) <= 1)// Если цель в зоне атаки не двигаемся
-            {
-                return currentPosition;
-            }
-
-            Vector2Int nextStep = currentPosition.CalcNextStepTowards(target);
-
-
-            return nextStep;
-
+            return unit.Pos;
         }
-
-
-
-
-
         protected override List<Vector2Int> SelectTargets()
         {
-            ///////////////////////////////////////
-            // Homework 1.4 (1st block, 4rd module)
-            ///////////////////////////////////////
-            ///
-
-            IEnumerable<Vector2Int> allTargets = GetAllTargets();
-            List<Vector2Int> result = GetReachableTargets().ToList();
-            List<Vector2Int> unreachableTargets = new List<Vector2Int>(); // Цели вне зоны досягаемости
-
+            //////////////////////////////////////////////
+            /////////////////////////////////////////////
+            _unreachableTargets.Clear();
+            List<Vector2Int> result = new List<Vector2Int>();
+            List<Vector2Int> allTargets = GetAllTargets().ToList();
             
-            if (allTargets.Any())// Если есть цели
-            {
-                float minDistance = float.MaxValue;// Находим ближайшую цель 
-                Vector2Int closestTarget = default;
-
-                foreach (Vector2Int target in allTargets)
-                {
-                    float distance = DistanceToOwnBase(target);
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        closestTarget = target;
-                    }
-                }
-
-                if (result.Contains(closestTarget))// Проверяем, достижима ли цель
-                {
-
-                    result.Clear();// Если достижима - оставляем только её
-                    result.Add(closestTarget);
-                }
-                else
-                {
-
-                    unreachableTargets.Add(closestTarget);
-                    result.Clear(); // Очищаем достижимые цели
-                }
-            }
-
-            else // Если целей нет - добавляем базу противника как следующую цель
+            if (!allTargets.Any()) 
             {
                 int enemyPlayerId = IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId;
                 Vector2Int enemyBase = runtimeModel.RoMap.Bases[enemyPlayerId];
                 result.Add(enemyBase);
+                return result;
             }
+            SortByDistanceToOwnBase(allTargets);
+            List<Vector2Int> limitedTargets = allTargets.Take(MaxOfTargets).ToList();
+            int targetIndex = _unitNumber % limitedTargets.Count;
 
+            // Получаем выбранную цель
+            Vector2Int selectedTarget = allTargets[targetIndex];
 
+            // Проверяем, находится ли цель в радиусе атаки
+            if (IsTargetInRange(selectedTarget))
+            {
+                result.Add(selectedTarget);
+            }
+            else
+            {
+                _unreachableTargets.Add(selectedTarget);
+            }
             return result;
-
-
-            ///////////////////////////////////////
         }
-
+            ///////////////////////////////////////
+            //////////////////////////////////////
         public override void Update(float deltaTime, float time)
         {
             if (_overheated)
